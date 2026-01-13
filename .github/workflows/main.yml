@@ -1,0 +1,58 @@
+name: SUBZERO-MD-CI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  subzero-md:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Show Environment Info
+        run: |
+          echo "Node: $(node -v)"
+          echo "NPM: $(npm -v)"
+          echo "Directory:"
+          ls -la
+
+      - name: Install Dependencies
+        run: |
+          npm install
+
+      - name: Validate Required Files
+        run: |
+          test -f index.js || (echo "❌ index.js missing" && exit 1)
+          test -f settings.js || echo "⚠ settings.js missing"
+          test -f package.json || (echo "❌ package.json missing" && exit 1)
+
+          echo "Start script:"
+          node -e "console.log(require('./package.json').scripts.start)"
+
+      - name: Run SUBZERO-MD (Test Mode)
+        env:
+          SESSION_ID: ${{ secrets.SESSION_ID }}
+        run: |
+          echo "Starting SUBZERO-MD bot (debug mode)"
+          echo "This run is limited to 20 minutes"
+          echo "Time: $(date)"
+
+          timeout 1200 npm start || echo "Bot stopped (timeout/crash)"
+
+      - name: Post Run Summary
+        if: always()
+        run: |
+          echo "Finished at $(date)"
+          free -h
+          df -h
