@@ -1,48 +1,73 @@
-name: SUBZERO-MD-CI
 
+You said:
+name: SUBZERO-MD-DEPLOY
 on:
   workflow_dispatch:
-
-permissions:
-  contents: read
-
 jobs:
-  subzero-md:
+  deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: '20'
-
-      - name: Environment Info
+          
+      - name: Debug Environment
         run: |
-          node -v
-          npm -v
+          echo "=== ENVIRONMENT DEBUG ==="
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Working directory: $(pwd)"
+          echo "Files in current directory:"
           ls -la
-
+          echo "=== SESSION ID CHECK ==="
+          if [ -f ".env" ]; then
+            echo ".env file found:"
+            cat .env
+          else
+            echo "No .env file found"
+          fi
+          echo "=== CONFIG FILE CHECK ==="
+          if [ -f "settings.js" ]; then
+            echo "settings.js content:"
+            cat settings.js
+          else
+            echo "No settings.js found"
+          fi
+          
       - name: Install Dependencies
         run: |
-          npm install --no-package-lock
-
-      - name: Validate Files
+          echo "=== INSTALLING DEPENDENCIES ==="
+          npm install --verbose
+          echo "=== DEPENDENCY TREE ==="
+          npm list --depth=0
+          
+      - name: Pre-run Checks
         run: |
-          test -f index.js || exit 1
-          test -f package.json || exit 1
-          echo "Start script:"
-          node -e "console.log(require('./package.json').scripts.start)"
-
-      - name: Run SUBZERO-MD (Test Mode)
-        env:
-          SESSION_ID: ${{ secrets.SESSION_ID }}
+          echo "=== PRE-RUN CHECKS ==="
+          echo "Checking package.json scripts:"
+          cat package.json | grep -A 10 '"scripts"'
+          echo "=== CHECKING FOR MAIN FILES ==="
+          if [ -f "index.js" ]; then echo "✓ index.js found"; else echo "✗ index.js missing"; fi
+          
+      - name: Run Bot with Detailed Logging
         run: |
-          echo "Starting bot..."
-          timeout 1200 npm start || echo "Stopped"
-
-      - name: Done
-        if: always()
-        run: echo "Workflow finished"
+          echo "=== STARTING SUBZERO-MD BOT ==="
+          echo "Timestamp: $(date)"
+          echo "Starting bot with detailed logging..."
+          
+          # Function to run bot with logging
+          run_bot() {
+            echo ">>> Attempting to start bot..."
+            npm start 2>&1 | while IFS= read -r line; do
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $line"
+            done
+            echo ">>> Bot process ended with exit code: $?"
+          }
+          
+          
+       
+        
