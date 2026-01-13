@@ -18,25 +18,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
-      - name: Show Environment Info
+      - name: Environment Info
         run: |
-          echo "Node: $(node -v)"
-          echo "NPM: $(npm -v)"
-          echo "Directory:"
+          node -v
+          npm -v
           ls -la
 
       - name: Install Dependencies
         run: |
-          npm install
+          npm install --no-package-lock
 
-      - name: Validate Required Files
+      - name: Validate Files
         run: |
-          test -f index.js || (echo "❌ index.js missing" && exit 1)
-          test -f settings.js || echo "⚠ settings.js missing"
-          test -f package.json || (echo "❌ package.json missing" && exit 1)
-
+          test -f index.js || exit 1
+          test -f package.json || exit 1
           echo "Start script:"
           node -e "console.log(require('./package.json').scripts.start)"
 
@@ -44,15 +40,9 @@ jobs:
         env:
           SESSION_ID: ${{ secrets.SESSION_ID }}
         run: |
-          echo "Starting SUBZERO-MD bot (debug mode)"
-          echo "This run is limited to 20 minutes"
-          echo "Time: $(date)"
+          echo "Starting bot..."
+          timeout 1200 npm start || echo "Stopped"
 
-          timeout 1200 npm start || echo "Bot stopped (timeout/crash)"
-
-      - name: Post Run Summary
+      - name: Done
         if: always()
-        run: |
-          echo "Finished at $(date)"
-          free -h
-          df -h
+        run: echo "Workflow finished"
